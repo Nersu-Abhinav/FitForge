@@ -9,6 +9,8 @@ import { usePersistenceStore, PersistenceEvent } from '@/store/usePersistenceSto
 import { classifySyncError } from './syncErrorClassifier';
 import { getToday } from '@/utils/date';
 
+export const DEFAULT_CLOUD_API_URL = 'https://fitforge-ji4u.onrender.com/api';
+
 export function getApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
     const custom = localStorage.getItem('fitforge_custom_api_url');
@@ -22,12 +24,8 @@ export function getApiBaseUrl(): string {
     return envUrl.trim().replace(/\/+$/, '');
   }
 
-  if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return `http://${window.location.hostname}:4000/api`;
-  }
-
-  // For native mobile APKs and local development
-  return 'http://192.168.1.13:4000/api';
+  // 24/7 Global TiDB Cloud Production Backend URL on Render
+  return DEFAULT_CLOUD_API_URL;
 }
 
 export const API_BASE = getApiBaseUrl();
