@@ -1,0 +1,42 @@
+{
+  "name": "FitForge — Hypertrophy & Fitness OS",
+  "short_name": "FitForge",
+  "description": "State-of-the-art hypertrophy tracker, progressive overload calculator, and intelligent AI coach.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06090F",
+  "theme_color": "#06090F",
+  "orientation": "portrait",
+  "categories": ["fitness", "health", "lifestyle"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='128' fill='%2306090F'/><path d='M140 140 L372 372 M440 440 L420 420 M72 72 L92 92 M380 460 L460 380 M52 132 L132 52 M72 212 L212 72 M300 440 L440 300' stroke='%2310B981' stroke-width='40' stroke-linecap='round' stroke-linejoin='round'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start Workout",
+      "short_name": "Workout",
+      "description": "Resume or launch today's training split",
+      "url": "/?action=start_workout",
+      "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310B981'><path d='M6.5 6.5 17.5 17.5'/></svg>", "sizes": "96x96" }]
+    },
+    {
+      "name": "AI Coach Chat",
+      "short_name": "AI Coach",
+      "description": "Ask the FitForge Apex AI Agent",
+      "url": "/?action=ai_coach",
+      "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23A855F7'><path d='M12 2v20'/></svg>", "sizes": "96x96" }]
+    },
+    {
+      "name": "Log Hydration",
+      "short_name": "Hydrate",
+      "description": "Quick-log 500ml water",
+      "url": "/?action=log_water",
+      "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2306B6D4'><circle cx='12' cy='12' r='10'/></svg>", "sizes": "96x96" }]
+    }
+  ]
+}
