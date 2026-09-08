@@ -252,6 +252,10 @@ export function App() {
         onClose={() => setIsQuickActionOpen(false)}
         onNavigateTab={(tab) => setCurrentTab(tab)}
         onOpenActiveWorkout={() => setIsActiveWorkoutOpen(true)}
+        onOpenAIAdvisor={(query) => {
+          setAiInitialQuery(query);
+          setIsAIAdvisorOpen(true);
+        }}
       />
       <AIAdvisorScreen
         isOpen={isAIAdvisorOpen}

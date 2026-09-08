@@ -134,7 +134,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutProps> = ({ isOpen, onClo
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#070A12] text-white animate-fade-in overflow-hidden">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#070A12] text-white animate-fade-in overflow-hidden transform-gpu">
       
       {/* Ambient Aurora Glow Lights */}
       <div className="w-[500px] h-[300px] bg-emerald-500/10 rounded-full blur-[120px] absolute -top-10 -left-20 pointer-events-none" />
