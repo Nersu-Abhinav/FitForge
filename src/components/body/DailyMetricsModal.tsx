@@ -128,6 +128,51 @@ export const DailyMetricsModal: React.FC<DailyMetricsModalProps> = ({
   const [wakeTime, setWakeTime] = useState<string>('06:30');
   const [sleepQuality, setSleepQuality] = useState<number>(85);
   const [deepSleepMins, setDeepSleepMins] = useState<string>('90');
+  const [isAutoCalculated, setIsAutoCalculated] = useState<boolean>(false);
+
+  // Helper: Precise sleep duration calculation from Bedtime and Wake Time
+  const calculateSleepMinutes = (bed: string, wake: string): number => {
+    if (!bed || !wake) return 0;
+    const [bedH, bedM] = bed.split(':').map(n => parseInt(n, 10));
+    const [wakeH, wakeM] = wake.split(':').map(n => parseInt(n, 10));
+    if (isNaN(bedH) || isNaN(bedM) || isNaN(wakeH) || isNaN(wakeM)) return 0;
+
+    const bedTotalMinutes = bedH * 60 + bedM;
+    const wakeTotalMinutes = wakeH * 60 + wakeM;
+
+    let diffMinutes = wakeTotalMinutes - bedTotalMinutes;
+    if (diffMinutes <= 0) {
+      // Handles overnight sleep crossing midnight (e.g., 23:00 to 06:30)
+      diffMinutes += 24 * 60;
+    }
+    return diffMinutes;
+  };
+
+  const handleBedtimeChange = (newBedtime: string) => {
+    setBedtime(newBedtime);
+    if (newBedtime && wakeTime) {
+      const mins = calculateSleepMinutes(newBedtime, wakeTime);
+      if (mins > 0) {
+        const hrs = (mins / 60).toFixed(1);
+        setSleepHours(hrs);
+        setIsAutoCalculated(true);
+        triggerHaptic('light');
+      }
+    }
+  };
+
+  const handleWakeTimeChange = (newWakeTime: string) => {
+    setWakeTime(newWakeTime);
+    if (bedtime && newWakeTime) {
+      const mins = calculateSleepMinutes(bedtime, newWakeTime);
+      if (mins > 0) {
+        const hrs = (mins / 60).toFixed(1);
+        setSleepHours(hrs);
+        setIsAutoCalculated(true);
+        triggerHaptic('light');
+      }
+    }
+  };
 
   // --- Recovery State ---
   const [energy, setEnergy] = useState<number>(8);
@@ -801,7 +846,7 @@ export const DailyMetricsModal: React.FC<DailyMetricsModalProps> = ({
                   <input
                     type="time"
                     value={bedtime}
-                    onChange={(e) => setBedtime(e.target.value)}
+                    onChange={(e) => handleBedtimeChange(e.target.value)}
                     className="w-full p-2 bg-slate-900 border border-white/10 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-purple-500"
                   />
                 </div>
@@ -814,11 +859,39 @@ export const DailyMetricsModal: React.FC<DailyMetricsModalProps> = ({
                   <input
                     type="time"
                     value={wakeTime}
-                    onChange={(e) => setWakeTime(e.target.value)}
+                    onChange={(e) => handleWakeTimeChange(e.target.value)}
                     className="w-full p-2 bg-slate-900 border border-white/10 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-purple-500"
                   />
                 </div>
               </div>
+
+              {/* Dynamic Auto-Calculated Sleep Duration Banner */}
+              {bedtime && wakeTime && (
+                <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-950/40 via-purple-900/20 to-slate-900/60 border border-purple-500/30 flex items-center justify-between animate-fade-in shadow-inner">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-mono text-purple-300 font-bold block">
+                        Auto-Calculated Duration
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        {bedtime} → {wakeTime} window
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-xs font-mono font-black text-white bg-purple-500/30 px-2.5 py-1 rounded-xl border border-purple-400/40 glow-purple">
+                      {Math.floor(calculateSleepMinutes(bedtime, wakeTime) / 60)}h {calculateSleepMinutes(bedtime, wakeTime) % 60}m
+                    </span>
+                    <span className="text-[10px] font-mono text-purple-300 font-bold">
+                      ({(calculateSleepMinutes(bedtime, wakeTime) / 60).toFixed(1)}h)
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-2.5 pt-2">
                 {existingSleepForDate && (
