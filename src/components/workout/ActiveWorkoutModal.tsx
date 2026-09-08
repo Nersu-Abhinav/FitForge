@@ -5,6 +5,7 @@ import { useModalBehavior } from '@/hooks/useModalBehavior';
 import { ExercisePickerModal } from './ExercisePickerModal';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
 import { SetType } from '@/types';
+import { triggerHaptic } from '@/utils/haptics';
 import { 
   Play, 
   Check, 
@@ -54,6 +55,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutProps> = ({ isOpen, onClo
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isExercisePickerOpen, setIsExercisePickerOpen] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
+  const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false);
   const [finishRating, setFinishRating] = useState(5);
   const [finishNotes, setFinishNotes] = useState('');
 
@@ -503,31 +505,37 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutProps> = ({ isOpen, onClo
           })
         )}
 
-        {/* Add Another Exercise Button */}
+        {/* Add Another Movement / Exercise Button */}
         {activeWorkout.exercises.length > 0 && (
-          <div className="pt-3">
+          <div className="pt-2">
             <button
-              onClick={() => setIsExercisePickerOpen(true)}
-              className="w-full py-4 rounded-3xl bg-gradient-to-r from-emerald-500/15 via-teal-500/15 to-cyan-500/15 hover:from-emerald-500/25 hover:to-cyan-500/25 border border-emerald-500/30 text-emerald-300 hover:text-emerald-200 font-black text-sm flex items-center justify-center gap-2 transition-all pressable shadow-lg"
+              type="button"
+              onClick={() => {
+                triggerHaptic('medium');
+                setIsExercisePickerOpen(true);
+              }}
+              className="w-full py-4 px-6 rounded-3xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 hover:text-white font-black text-sm tracking-wide flex items-center justify-center gap-2.5 transition-all duration-300 pressable shadow-[0_0_20px_rgba(16,185,129,0.15)] group"
             >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              + Add Next Movement
+              <div className="w-6 h-6 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Plus className="w-4 h-4 text-emerald-300 stroke-[3]" />
+              </div>
+              <span>Add Next Movement</span>
             </button>
           </div>
         )}
 
         {/* Discard Workout Option */}
-        <div className="pt-6 text-center">
+        <div className="pt-4 pb-2 text-center flex justify-center">
           <button
+            type="button"
             onClick={() => {
-              if (confirm('Discard current workout and lose all recorded sets?')) {
-                discardWorkout();
-                onClose();
-              }
+              triggerHaptic('medium');
+              setIsDiscardModalOpen(true);
             }}
-            className="text-xs text-rose-400/80 hover:text-rose-400 underline font-mono tracking-wider transition-colors"
+            className="px-4 py-2 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/20 hover:border-rose-500/40 text-xs font-mono font-bold tracking-wider transition-all pressable flex items-center gap-2"
           >
-            Discard Workout Session
+            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+            <span>Discard Session</span>
           </button>
         </div>
       </div>
@@ -609,6 +617,59 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutProps> = ({ isOpen, onClo
               >
                 <Zap className="w-4 h-4 fill-slate-950" />
                 Save & Log 🚀
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Cybernetic Discard Workout Confirmation Modal */}
+      {isDiscardModalOpen && (
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsDiscardModalOpen(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-in"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm bg-[#0B0F1C] rounded-3xl p-6 border border-rose-500/40 text-center shadow-2xl relative overflow-hidden animate-scale-up"
+          >
+            {/* Ambient Red Glow */}
+            <div className="w-40 h-40 bg-rose-500/15 rounded-full blur-[50px] absolute -top-10 left-1/2 -translate-x-1/2 pointer-events-none" />
+
+            <div className="w-16 h-16 rounded-3xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 mx-auto mb-4 shadow-lg glow-rose">
+              <Trash2 className="w-8 h-8" />
+            </div>
+
+            <h3 className="text-xl font-black text-white tracking-tight">Discard Workout Session?</h3>
+            <p className="text-xs text-slate-400 mt-2 mb-6 font-mono leading-relaxed">
+              Are you sure? All recorded exercises, sets, weights, and reps for this session will be permanently erased.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('light');
+                  setIsDiscardModalOpen(false);
+                }}
+                className="flex-1 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs border border-white/10 transition-colors pressable"
+              >
+                Keep Training
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('medium');
+                  discardWorkout();
+                  setIsDiscardModalOpen(false);
+                  onClose();
+                }}
+                className="flex-1 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs uppercase tracking-wider shadow-lg glow-rose pressable transition-all flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4 stroke-[2.5]" />
+                Discard
               </button>
             </div>
           </div>
