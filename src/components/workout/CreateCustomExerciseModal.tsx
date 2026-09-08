@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalBehavior } from '@/hooks/useModalBehavior';
+import { useWorkoutStore } from '@/store/useWorkoutStore';
 import { triggerHaptic } from '@/utils/haptics';
 import { Exercise, MuscleGroup, Equipment, DifficultyLevel } from '@/types';
 import { 
@@ -12,16 +13,10 @@ import {
   Sparkles, 
   SlidersHorizontal, 
   Layers, 
-  Flame, 
   Clock, 
-  Activity, 
   Scale, 
   Zap, 
-  ChevronRight,
-  Info,
-  Shield,
-  Tag,
-  Compass
+  AlertCircle
 } from 'lucide-react';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
 
@@ -120,9 +115,12 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
   initialEquipment = 'Barbell',
 }) => {
   const { handleBackdropClick } = useModalBehavior({ isOpen, onClose });
+  const { addCustomExercise } = useWorkoutStore();
 
   // Core Form State
   const [name, setName] = useState('');
+  const [nameError, setNameError] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>(initialMuscle);
   const [secondaryMuscles, setSecondaryMuscles] = useState<string[]>([]);
   const [equipment, setEquipment] = useState<Equipment>(initialEquipment);
@@ -130,8 +128,7 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
   const [recommendedRepRange, setRecommendedRepRange] = useState('8 - 12 reps');
   const [targetSets, setTargetSets] = useState(3);
   const [restSeconds, setRestSeconds] = useState(90);
-  const [tempo, setTempo] = useState('3-0-1-0 Controlled');
-  const [cues, setCues] = useState<string[]>(['Control the 3-second eccentric phase', 'Full stretch and contraction']);
+  const [cues, setCues] = useState<string[]>(['Control the eccentric descent', 'Full stretch and contraction']);
   const [newCueInput, setNewCueInput] = useState('');
 
   // Equipment Specific Customizations
@@ -167,7 +164,7 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
   // Child Plate Calculator Modal
   const [isPlateCalcModalOpen, setIsPlateCalcModalOpen] = useState(false);
 
-  // Calculate Olympic plates breakdown per side for Barbell preview (Hooks MUST be top-level before early returns)
+  // Calculate Olympic plates breakdown per side for Barbell preview (Hooks MUST run unconditionally)
   const actualBarWeight = selectedBar.weight === 0 ? customBarWeight : selectedBar.weight;
   const plateBreakdownPerSide = useMemo(() => {
     const netWeightToLoad = Math.max(0, targetBarbellWeight - actualBarWeight);
@@ -205,13 +202,14 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
     setCues(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveMovement = async () => {
     if (!name.trim()) {
+      setNameError(true);
       triggerHaptic('warning');
       return;
     }
 
+    setIsSaving(true);
     triggerHaptic('success');
 
     // Build rich instructions and form cues
@@ -227,16 +225,15 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
         : equipment === 'Kettlebell'
         ? `Kettlebell setup: ${kbMode === 'Pair' ? 'Double bells' : 'Single bell'} (${kbWeight} kg).`
         : `Bodyweight mechanics: ${bwStyle}${bwStyle !== 'Bodyweight Only' ? ` (${bwAddedWeight} kg)` : ''}.`,
-      `Prescribed prescription: ${targetSets} working sets of ${recommendedRepRange} at ${tempo} tempo with ${restSeconds}s rest.`
+      `Prescribed prescription: ${targetSets} working sets of ${recommendedRepRange} with ${restSeconds}s rest.`
     ];
 
     const builtFormCues = [
       ...cues,
-      `Tempo: ${tempo}`,
       `Rest interval: ${restSeconds}s`
     ];
 
-    await onSaveExercise({
+    const exercisePayload: Omit<Exercise, 'id' | 'isCustom'> = {
       name: name.trim(),
       category: 'Custom',
       muscleGroup,
@@ -247,9 +244,25 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
       instructions: builtInstructions,
       formCues: builtFormCues,
       commonMistakes: ['Rushing through the eccentric phase', 'Sacrificing range of motion for ego weight']
-    });
+    };
 
-    onClose();
+    try {
+      // 1. Direct persistence to Database & Zustand store
+      const created = await addCustomExercise(exercisePayload);
+      
+      // 2. Callback for split customizer or exercise picker
+      if (onSaveExercise) {
+        await onSaveExercise(exercisePayload);
+      }
+
+      setName('');
+      setNameError(false);
+      onClose();
+    } catch (err) {
+      console.error('Error saving custom exercise:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return createPortal(
@@ -259,7 +272,7 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl max-h-[94vh] bg-[#0A0E1A] border-t sm:border border-cyan-500/30 sm:rounded-3xl rounded-t-3xl flex flex-col overflow-hidden shadow-2xl animate-slide-up relative"
+        className="w-full max-w-2xl max-h-[94vh] bg-[#0A0E1A] border-t sm:border border-cyan-500/30 sm:rounded-3xl rounded-t-3xl flex flex-col overflow-hidden shadow-2xl animate-slide-up relative text-left"
       >
         {/* Ambient Top Glow */}
         <div className="absolute top-0 left-1/4 right-1/4 h-24 bg-gradient-to-b from-cyan-500/15 via-emerald-500/10 to-transparent blur-2xl pointer-events-none" />
@@ -274,10 +287,10 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
               <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-lg font-black text-white tracking-tight">Create Custom Exercise</h3>
                 <span className="px-2 py-0.5 rounded-md bg-cyan-500/20 border border-cyan-500/30 text-[10px] font-mono text-cyan-300 font-bold uppercase tracking-wider">
-                  Pro Engine
+                  Database Synced
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Configure visual equipment mechanics, load & biomechanics</p>
+              <p className="text-xs text-slate-400">Directly persisted to database with visual plate & dumbbell mechanics</p>
             </div>
           </div>
 
@@ -291,8 +304,60 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
         </div>
 
         {/* 2. Scrollable Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5 custom-scrollbar relative z-10">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 custom-scrollbar relative z-10">
           
+          {/* ALWAYS-VISIBLE HERO EXERCISE NAME INPUT */}
+          <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-white/10 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-mono uppercase text-slate-300 font-bold flex items-center gap-1.5">
+                <span className="text-cyan-400 font-black">●</span> Exercise Name *
+              </label>
+              <span className="text-[10px] font-mono text-slate-400">Direct Database Entry</span>
+            </div>
+
+            <input
+              type="text"
+              autoFocus
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (nameError) setNameError(false);
+              }}
+              placeholder="e.g., Incline Dumbbell Bench Press, Barbell Romanian Deadlift"
+              className={`w-full px-4 py-3 bg-black/70 border rounded-xl text-white text-sm focus:outline-none font-sans transition-all ${
+                nameError
+                  ? 'border-red-500 ring-2 ring-red-500/30 placeholder-red-300'
+                  : 'border-white/10 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50'
+              }`}
+            />
+
+            {nameError && (
+              <p className="text-xs font-mono text-red-400 flex items-center gap-1.5 pt-0.5 animate-fade-in">
+                <AlertCircle className="w-3.5 h-3.5" />
+                Please enter a name for your custom exercise before saving.
+              </p>
+            )}
+
+            {/* Smart Suggestions Chips */}
+            <div className="flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar text-[10px] font-mono">
+              <span className="text-slate-500 whitespace-nowrap">Suggested:</span>
+              {(SMART_NAME_SUGGESTIONS[muscleGroup] || []).map((sug) => (
+                <button
+                  key={sug}
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('selection');
+                    setName(sug);
+                    if (nameError) setNameError(false);
+                  }}
+                  className="px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-cyan-300 whitespace-nowrap border border-white/5 hover:border-cyan-500/30 transition-all"
+                >
+                  + {sug}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* LIVE MASTER EXERCISE PREVIEW CARD */}
           <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900/90 via-[#0E172A] to-slate-950 border border-cyan-500/30 shadow-xl relative overflow-hidden group">
             {/* Background Accent Lines */}
@@ -312,7 +377,7 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
                   </span>
                 </div>
                 <h4 className="text-base sm:text-lg font-black text-white truncate max-w-sm">
-                  {name.trim() || 'Custom Exercise Name'}
+                  {name.trim() || 'Custom Exercise Preview'}
                 </h4>
               </div>
 
@@ -428,7 +493,6 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
               {/* 3. Cable Stack Live Visualization */}
               {equipment === 'Cable' && (
                 <div className="w-full flex items-center justify-center gap-4 py-1">
-                  {/* Pin Stack Graphic */}
                   <div className="w-24 bg-slate-900 rounded-lg border border-purple-500/30 p-1 space-y-0.5 shadow-inner">
                     {[10, 20, 30, 40, 50].map((w) => {
                       const isPin = cableWeight >= w && cableWeight < w + 10;
@@ -483,9 +547,7 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
                 <div className="flex items-center justify-center gap-4 py-1">
                   {[...Array(kbMode === 'Pair' ? 2 : 1)].map((_, i) => (
                     <div key={i} className="flex flex-col items-center">
-                      {/* Horn Handle */}
                       <div className="w-8 h-5 border-3 border-slate-400 border-b-0 rounded-t-full relative" />
-                      {/* Bell Body */}
                       <div className="w-11 h-11 rounded-full bg-gradient-to-b from-slate-700 via-slate-800 to-black border border-rose-500/40 shadow-xl flex items-center justify-center relative">
                         <div className="w-full h-1 bg-amber-400 absolute top-1.5 opacity-80" />
                         <span className="text-[10px] font-mono font-black text-rose-300">
@@ -523,10 +585,6 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
                 <Clock className="w-3.5 h-3.5 text-emerald-400" />
                 <strong>{restSeconds}s Rest</strong>
               </span>
-              <span className="flex items-center gap-1">
-                <Activity className="w-3.5 h-3.5 text-amber-400" />
-                {tempo.split(' ')[0]}
-              </span>
             </div>
           </div>
 
@@ -535,7 +593,7 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
             {[
               { id: 'mechanics' as const, label: 'Equipment & Load', icon: Dumbbell },
               { id: 'targets' as const, label: 'Muscles & Reps', icon: SlidersHorizontal },
-              { id: 'cues' as const, label: 'Cues & Biomechanics', icon: Sparkles },
+              { id: 'cues' as const, label: 'Cues & Form Tips', icon: Sparkles },
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeConfigTab === tab.id;
@@ -563,39 +621,6 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
           {/* TAB 1: EQUIPMENT & LOAD MECHANICS */}
           {activeConfigTab === 'mechanics' && (
             <div className="space-y-4 animate-fade-in">
-              {/* Exercise Name Input */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-mono uppercase text-slate-300 font-bold">
-                  Exercise Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Incline Dumbbell Bench Press, Barbell RDL"
-                  className="w-full px-4 py-3 bg-slate-900/90 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500 font-sans shadow-inner"
-                />
-
-                {/* Smart Name Suggestions */}
-                <div className="flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar text-[10px] font-mono">
-                  <span className="text-slate-500 whitespace-nowrap">Suggested:</span>
-                  {(SMART_NAME_SUGGESTIONS[muscleGroup] || []).map((sug) => (
-                    <button
-                      key={sug}
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic('selection');
-                        setName(sug);
-                      }}
-                      className="px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-cyan-300 whitespace-nowrap border border-white/5 hover:border-cyan-500/30 transition-all"
-                    >
-                      + {sug}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Equipment Type Grid Selector */}
               <div className="space-y-2">
                 <label className="block text-xs font-mono uppercase text-slate-300 font-bold">
@@ -1247,44 +1272,27 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
                 />
               </div>
 
-              {/* Difficulty & Tempo */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-mono text-slate-300 block font-bold">Difficulty Level</label>
-                  <div className="flex gap-1.5">
-                    {(['Beginner', 'Intermediate', 'Advanced'] as DifficultyLevel[]).map(d => (
-                      <button
-                        key={d}
-                        type="button"
-                        onClick={() => {
-                          triggerHaptic('selection');
-                          setDifficulty(d);
-                        }}
-                        className={`flex-1 py-2 rounded-xl text-xs font-mono font-bold border text-center ${
-                          difficulty === d
-                            ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-black'
-                            : 'bg-slate-900 text-slate-400 border-white/10'
-                        }`}
-                      >
-                        {d}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-mono text-slate-300 block font-bold">Execution Tempo</label>
-                  <select
-                    value={tempo}
-                    onChange={(e) => setTempo(e.target.value)}
-                    className="w-full py-2 px-3 bg-slate-900 border border-white/10 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-cyan-500"
-                  >
-                    <option value="3-0-1-0 Controlled">3-0-1-0 (3s eccentric, explosive up)</option>
-                    <option value="2-0-1-0 Standard">2-0-1-0 (Standard Hypertrophy)</option>
-                    <option value="4-1-1-0 High Tension">4-1-1-0 (4s eccentric + 1s stretch)</option>
-                    <option value="Explosive Concentric">Explosive Power (Speed work)</option>
-                    <option value="Isometric Pause (2s)">2s Pause at peak contraction</option>
-                  </select>
+              {/* Difficulty */}
+              <div className="space-y-1">
+                <label className="text-xs font-mono text-slate-300 block font-bold">Difficulty Level</label>
+                <div className="flex gap-1.5">
+                  {(['Beginner', 'Intermediate', 'Advanced'] as DifficultyLevel[]).map(d => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('selection');
+                        setDifficulty(d);
+                      }}
+                      className={`flex-1 py-2 rounded-xl text-xs font-mono font-bold border text-center ${
+                        difficulty === d
+                          ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-black'
+                          : 'bg-slate-900 text-slate-400 border-white/10'
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -1390,14 +1398,18 @@ export const CreateCustomExerciseModal: React.FC<CreateCustomExerciseModalProps>
               Cancel
             </button>
             <button
-              type="submit"
-              className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 hover:from-cyan-400 hover:to-emerald-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/30 glow-volt pressable transition-all flex items-center justify-center gap-1.5"
+              type="button"
+              disabled={isSaving}
+              onClick={handleSaveMovement}
+              className={`flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 hover:from-cyan-400 hover:to-emerald-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/30 glow-volt pressable transition-all flex items-center justify-center gap-1.5 ${
+                isSaving ? 'opacity-70 cursor-wait' : ''
+              }`}
             >
               <Check className="w-4 h-4 stroke-[3]" />
-              Save Custom Movement
+              {isSaving ? 'Saving to Database...' : 'Save Custom Movement'}
             </button>
           </div>
-        </form>
+        </div>
 
         {/* 4. Child Plate Calculator Modal Integration */}
         <PlateCalculatorModal
