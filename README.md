@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ FITFORGE PRO OS
+# ⚡ FITFORGE OS
 ### *The Autonomous Hypertrophy, Precision Nutrition & Biometric Performance Operating System*
 
 [![Typing SVG](https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=800&size=24&duration=3000&pause=1000&color=10B981&center=true&vCenter=true&width=650&lines=24%2F7+Cloud+Sync+%E2%80%A2+TiDB+Cloud+Serverless;Precision+Hypertrophy+%26+Strength+Protocol;Automated+Sleep+%26+Biometric+Telemetry;Cross-Platform+Android+APK+%2B+Web+App)](https://git.io/typing-svg)
@@ -182,7 +182,7 @@ FitForge/
 
 ## 🛡️ License & Acknowledgements
 
-- **Author**: [Abhinav Nersu](https://github.com/Nersu-Abhinav)
+- **Author**: [Nersu Abhinav](https://github.com/Nersu-Abhinav)
 - **License**: MIT License
 - **Database**: Hosted on **TiDB Cloud Serverless**
 - **Cloud Hosting**: Deployed on **Render**
