@@ -62,7 +62,11 @@ export const AppBootSplash: React.FC<AppBootSplashProps> = ({ onComplete, isData
 
   return (
     <div 
-      className={`fixed inset-0 z-[100] bg-[#050811] text-slate-100 flex flex-col items-center justify-between p-6 sm:p-10 select-none overflow-hidden transition-all duration-500 ease-out ${
+      style={{
+        paddingTop: 'max(20px, env(safe-area-inset-top, 32px))',
+        paddingBottom: 'max(20px, env(safe-area-inset-bottom, 24px))'
+      }}
+      className={`fixed inset-0 z-[100] bg-[#050811] text-slate-100 flex flex-col items-center justify-between px-6 sm:px-10 select-none overflow-hidden transition-all duration-500 ease-out ${
         isFadingOut ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'
       }`}
     >
@@ -72,15 +76,15 @@ export const AppBootSplash: React.FC<AppBootSplashProps> = ({ onComplete, isData
       <div className="absolute -top-10 -right-20 w-[450px] h-[450px] bg-purple-500/10 rounded-full blur-[130px] pointer-events-none" />
 
       {/* Top Header / System Badge */}
-      <div className="w-full flex items-center justify-between max-w-md relative z-10 animate-fade-in pt-2">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+      <div className="w-full flex items-center justify-between max-w-md relative z-10 animate-fade-in">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-sm">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
           <span className="text-[11px] font-mono font-bold tracking-wider text-slate-300 uppercase">
             TiDB Cloud • Direct Link
           </span>
         </div>
 
-        <span className="text-xs font-mono font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/30">
+        <span className="text-xs font-mono font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/30 glow-volt shadow-sm">
           v2.4 APEX
         </span>
       </div>
