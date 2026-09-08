@@ -42,7 +42,18 @@ interface WorkoutScreenProps {
 }
 
 export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onOpenActiveWorkout }) => {
-  const { workouts, activeWorkout, startWorkout, exercises, weeklySplit, prs } = useWorkoutStore();
+  const { 
+    workouts, 
+    activeWorkout, 
+    activeWorkoutElapsedSeconds,
+    isActiveWorkoutPaused,
+    resumeActiveWorkoutTimer,
+    discardWorkout,
+    startWorkout, 
+    exercises, 
+    weeklySplit, 
+    prs 
+  } = useWorkoutStore();
   const [isExercisePickerOpen, setIsExercisePickerOpen] = useState(false);
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
   const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
@@ -56,10 +67,26 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onOpenActiveWorkou
 
   const activeSelectedSplit = weeklySplit.find(s => s.dayName === selectedDayName) || todaySplit;
 
+  const formatTimer = (totalSecs: number) => {
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    const hrs = Math.floor(mins / 60);
+    if (hrs > 0) {
+      return `${hrs}h ${mins % 60}m ${secs}s`;
+    }
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
   const handleStartSplit = (split: CustomSplitDay) => {
     if (split.isRest) return;
     triggerHaptic('heavy');
     startWorkout(`${split.dayName}: ${split.title}`, split.exerciseIds);
+    onOpenActiveWorkout();
+  };
+
+  const handleResumeWorkout = () => {
+    triggerHaptic('medium');
+    resumeActiveWorkoutTimer();
     onOpenActiveWorkout();
   };
 
@@ -193,14 +220,11 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onOpenActiveWorkou
 
             {activeWorkout ? (
               <button
-                onClick={() => {
-                  triggerHaptic('medium');
-                  onOpenActiveWorkout();
-                }}
-                className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/30 hover:brightness-110 pressable transition-all flex items-center gap-2 animate-shimmer"
+                onClick={handleResumeWorkout}
+                className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/40 hover:brightness-110 pressable transition-all flex items-center gap-2 animate-shimmer"
               >
                 <Play className="w-4 h-4 fill-slate-950" />
-                Resume Active Workout
+                <span>Resume Active Session ({formatTimer(activeWorkoutElapsedSeconds)})</span>
               </button>
             ) : (
               <button
@@ -214,6 +238,52 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onOpenActiveWorkou
           </div>
         </div>
       </div>
+
+      {/* ACTIVE WORKOUT LIVE HUD BANNER (When a workout is in progress) */}
+      {activeWorkout && (
+        <div className="forge-card rounded-3xl p-5 border border-emerald-500/50 bg-gradient-to-r from-emerald-950/70 via-[#0B1728] to-[#07101E] shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden animate-fade-in">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center glow-volt shrink-0 shadow-lg">
+              <Activity className="w-6 h-6 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                <span className="text-xs font-mono uppercase text-emerald-400 font-bold tracking-wider">
+                  Live Session Active • {isActiveWorkoutPaused ? 'Paused' : 'In Progress'}
+                </span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-white mt-0.5">
+                {activeWorkout.name}
+              </h3>
+              <div className="text-xs font-mono text-slate-300 flex items-center gap-2 mt-0.5">
+                <span className="text-emerald-400 font-bold">⏱ {formatTimer(activeWorkoutElapsedSeconds)}</span>
+                <span className="text-slate-500">•</span>
+                <span>{activeWorkout.exercises.length} Exercises Scheduled</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
+            <button
+              onClick={() => {
+                triggerHaptic('medium');
+                discardWorkout();
+              }}
+              className="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-mono font-bold transition-all pressable"
+            >
+              Discard
+            </button>
+            <button
+              onClick={handleResumeWorkout}
+              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-500/40 glow-volt pressable transition-all animate-shimmer"
+            >
+              <Play className="w-4 h-4 fill-slate-950" />
+              <span>Resume Session</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. PROGRAMMED WEEKLY SCHEDULE MATRIX (7-DAY STRIP) */}
       <div className="forge-card rounded-3xl p-5 sm:p-7 border border-white/10 shadow-2xl space-y-5 hud-border">
@@ -340,7 +410,15 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onOpenActiveWorkou
 
             {/* Big Tactical Action Button */}
             <div className="shrink-0">
-              {!activeSelectedSplit.isRest ? (
+              {activeWorkout ? (
+                <button
+                  onClick={handleResumeWorkout}
+                  className="w-full sm:w-auto px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-wider shadow-2xl pressable transition-all flex items-center justify-center gap-3 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 text-slate-950 hover:brightness-110 shadow-emerald-500/40 animate-shimmer"
+                >
+                  <Play className="w-5 h-5 fill-slate-950 stroke-[3]" />
+                  <span>⚡ RESUME ACTIVE WORKOUT ({formatTimer(activeWorkoutElapsedSeconds)})</span>
+                </button>
+              ) : !activeSelectedSplit.isRest ? (
                 <button
                   onClick={() => handleStartSplit(activeSelectedSplit)}
                   className={`w-full sm:w-auto px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-wider shadow-2xl pressable transition-all flex items-center justify-center gap-3 ${activeColor.btnBg} animate-shimmer`}

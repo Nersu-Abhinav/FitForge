@@ -37,6 +37,11 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutProps> = ({ isOpen, onClo
   useModalBehavior({ isOpen, onClose });
   const { 
     activeWorkout, 
+    activeWorkoutElapsedSeconds,
+    isActiveWorkoutPaused,
+    pauseActiveWorkoutTimer,
+    resumeActiveWorkoutTimer,
+    setActiveWorkoutElapsedSeconds,
     exercises,
     finishWorkout, 
     discardWorkout, 
@@ -52,7 +57,6 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutProps> = ({ isOpen, onClo
     adjustRestTimer
   } = useWorkoutStore();
 
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isExercisePickerOpen, setIsExercisePickerOpen] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
   const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false);
@@ -69,22 +73,24 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutProps> = ({ isOpen, onClo
     title?: string;
   }>({ isOpen: false });
 
-  // Workout duration timer
+  // Workout duration timer (ticks only when open and not paused)
   useEffect(() => {
-    if (!activeWorkout) return;
+    if (!isOpen || !activeWorkout || isActiveWorkoutPaused) return;
 
-    const startTime = new Date(activeWorkout.startTime).getTime();
-    const updateElapsed = () => {
-      const now = Date.now();
-      setElapsedSeconds(Math.max(0, Math.floor((now - startTime) / 1000)));
-    };
+    const interval = setInterval(() => {
+      setActiveWorkoutElapsedSeconds((s: number) => s + 1);
+    }, 1000);
 
-    updateElapsed();
-    const interval = setInterval(updateElapsed, 1000);
     return () => clearInterval(interval);
-  }, [activeWorkout]);
+  }, [isOpen, activeWorkout, isActiveWorkoutPaused, setActiveWorkoutElapsedSeconds]);
 
   if (!isOpen || !activeWorkout) return null;
+
+  const handleMinimize = () => {
+    triggerHaptic('light');
+    pauseActiveWorkoutTimer(); // Stop timer when leaving/collapsing, resumes when clicking Resume Active Workout
+    onClose();
+  };
 
   const formatTimer = (totalSecs: number) => {
     const mins = Math.floor(totalSecs / 60);
@@ -144,7 +150,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutProps> = ({ isOpen, onClo
       >
         <div className="flex items-center gap-3.5">
           <button
-            onClick={onClose}
+            onClick={handleMinimize}
             className="p-2 rounded-2xl text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-all pressable"
             title="Minimize workout"
           >
@@ -153,17 +159,34 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutProps> = ({ isOpen, onClo
           
           <div>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+              <span className={`w-2.5 h-2.5 rounded-full ${isActiveWorkoutPaused ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse'} shadow-[0_0_8px_rgba(16,185,129,0.8)]`} />
               <h1 className="text-base sm:text-lg font-black text-white tracking-tight">
                 {activeWorkout.name}
               </h1>
             </div>
             
             <div className="flex items-center gap-2.5 text-xs font-mono mt-0.5">
-              <span className="flex items-center gap-1.5 text-emerald-400 font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30">
-                <Clock className="w-3.5 h-3.5" />
-                {formatTimer(elapsedSeconds)}
-              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('light');
+                  if (isActiveWorkoutPaused) {
+                    resumeActiveWorkoutTimer();
+                  } else {
+                    pauseActiveWorkoutTimer();
+                  }
+                }}
+                className={`flex items-center gap-1.5 font-bold px-2 py-0.5 rounded-md border transition-all pressable ${
+                  isActiveWorkoutPaused 
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse' 
+                    : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
+                }`}
+                title={isActiveWorkoutPaused ? "Resume Timer" : "Pause Timer"}
+              >
+                {isActiveWorkoutPaused ? <Play className="w-3 h-3 fill-amber-300" /> : <Clock className="w-3.5 h-3.5 text-emerald-400" />}
+                <span>{formatTimer(activeWorkoutElapsedSeconds)}</span>
+                {isActiveWorkoutPaused && <span className="text-[9px] uppercase font-mono tracking-wider opacity-90">Paused</span>}
+              </button>
               <span className="text-slate-400">
                 <strong className="text-white">{liveCompletedSets}</strong>/{totalSetsCount} sets ({completionPct}%)
               </span>
@@ -567,7 +590,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutProps> = ({ isOpen, onClo
 
             <h3 className="text-2xl font-black text-white tracking-tight">Workout Complete!</h3>
             <p className="text-xs text-slate-400 mt-1 mb-5 font-mono">
-              {formatTimer(elapsedSeconds)} • {liveCompletedSets} sets • {Math.round(liveVolume).toLocaleString()} kg volume
+              {formatTimer(activeWorkoutElapsedSeconds)} • {liveCompletedSets} sets • {Math.round(liveVolume).toLocaleString()} kg volume
             </p>
 
             {/* Rating */}

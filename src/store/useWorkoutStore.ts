@@ -251,10 +251,17 @@ interface WorkoutState {
   exercises: Exercise[];
   workouts: Workout[];
   activeWorkout: Workout | null;
+  activeWorkoutElapsedSeconds: number;
+  isActiveWorkoutPaused: boolean;
   restTimer: RestTimerState;
   prs: PersonalRecord[];
   latestPRCelebration: PersonalRecord | null;
   weeklySplit: CustomSplitDay[];
+
+  // Workout Duration Timer Actions
+  pauseActiveWorkoutTimer: () => void;
+  resumeActiveWorkoutTimer: () => void;
+  setActiveWorkoutElapsedSeconds: (seconds: number | ((prev: number) => number)) => void;
 
   // DB Hydration
   setWorkoutsFromDB: (workouts: Workout[]) => void;
@@ -304,6 +311,25 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   exercises: [...SEED_EXERCISES],
   workouts: [],
   activeWorkout: null,
+  activeWorkoutElapsedSeconds: 0,
+  isActiveWorkoutPaused: false,
+
+  pauseActiveWorkoutTimer: () => {
+    set({ isActiveWorkoutPaused: true });
+  },
+
+  resumeActiveWorkoutTimer: () => {
+    set({ isActiveWorkoutPaused: false });
+  },
+
+  setActiveWorkoutElapsedSeconds: (seconds) => {
+    if (typeof seconds === 'function') {
+      set((state) => ({ activeWorkoutElapsedSeconds: seconds(state.activeWorkoutElapsedSeconds) }));
+    } else {
+      set({ activeWorkoutElapsedSeconds: seconds });
+    }
+  },
+
   restTimer: {
     isActive: false,
     totalDuration: 90,
@@ -515,7 +541,11 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       totalSets: 0,
       totalReps: 0
     };
-    set({ activeWorkout: newWorkout });
+    set({ 
+      activeWorkout: newWorkout,
+      activeWorkoutElapsedSeconds: 0,
+      isActiveWorkoutPaused: false
+    });
   },
 
   finishWorkout: async (notes = '', rating = 5) => {
@@ -536,9 +566,12 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       });
     });
 
+    const elapsed = get().activeWorkoutElapsedSeconds;
+
     const finished: Workout = {
       ...active,
       endTime: new Date().toISOString(),
+      durationSeconds: elapsed > 0 ? elapsed : Math.max(1, Math.round((Date.now() - new Date(active.startTime).getTime()) / 1000)),
       status: 'completed',
       notes,
       rating,
@@ -552,6 +585,8 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     set({
       workouts: nextWorkouts,
       activeWorkout: null,
+      activeWorkoutElapsedSeconds: 0,
+      isActiveWorkoutPaused: false,
       restTimer: { isActive: false, totalDuration: 90, remainingSeconds: 0 }
     });
 
@@ -564,6 +599,8 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   discardWorkout: () => {
     set({
       activeWorkout: null,
+      activeWorkoutElapsedSeconds: 0,
+      isActiveWorkoutPaused: false,
       restTimer: { isActive: false, totalDuration: 90, remainingSeconds: 0 }
     });
   },
