@@ -30,6 +30,7 @@ import {
   Award,
   SlidersHorizontal
 } from 'lucide-react';
+import { CreateCustomExerciseModal } from './CreateCustomExerciseModal';
 
 const ALL_MUSCLES: MuscleGroup[] = [
   'Chest', 
@@ -919,128 +920,23 @@ export const SplitCustomizerModal: React.FC<SplitCustomizerModalProps> = ({
 
         </form>
 
-        {/* INLINE CREATE CUSTOM EXERCISE MODAL */}
-        {isCustomExerciseModalOpen && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-            <div className="w-full max-w-md rounded-3xl bg-[#0F172A] border border-cyan-500/40 p-5 sm:p-6 space-y-5 text-left shadow-2xl relative animate-slide-up">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
-                    <PlusCircle className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-base font-black text-white">Create Custom Exercise</h4>
-                    <span className="text-[10px] font-mono text-cyan-400">Save to Cloud & Add to Split</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsCustomExerciseModalOpen(false)}
-                  className="p-1.5 rounded-lg bg-white/10 text-slate-400 hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateCustomExercise} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-mono text-slate-300 block font-bold">Exercise Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Incline Hammer Strength Press"
-                    value={customExName}
-                    onChange={(e) => setCustomExName(e.target.value)}
-                    className="w-full p-2.5 bg-black/60 border border-white/10 rounded-xl text-white font-bold text-sm focus:outline-none focus:border-cyan-500 font-sans"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-mono text-slate-300 block font-bold">Primary Muscle</label>
-                    <select
-                      value={customExMuscle}
-                      onChange={(e) => setCustomExMuscle(e.target.value as MuscleGroup)}
-                      className="w-full p-2.5 bg-black/60 border border-white/10 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-cyan-500"
-                    >
-                      {ALL_MUSCLES.map(m => (
-                        <option key={m} value={m}>{m}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-mono text-slate-300 block font-bold">Equipment</label>
-                    <select
-                      value={customExEquipment}
-                      onChange={(e) => setCustomExEquipment(e.target.value as Equipment)}
-                      className="w-full p-2.5 bg-black/60 border border-white/10 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-cyan-500"
-                    >
-                      {['Barbell', 'Dumbbell', 'Cable', 'Machine', 'Bodyweight', 'Kettlebell', 'Bands', 'Cardio Machine'].map(eq => (
-                        <option key={eq} value={eq}>{eq}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-slate-300 block font-bold">Recommended Rep Range</label>
-                  <div className="grid grid-cols-3 gap-1.5 text-[10px] font-mono">
-                    {['3 - 5 reps', '6 - 8 reps', '8 - 12 reps', '10 - 15 reps', '15 - 20 reps', 'To Failure'].map(r => (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => setCustomExRepRange(r)}
-                        className={`py-1.5 px-2 rounded-lg border text-center transition-all ${
-                          customExRepRange === r 
-                            ? 'bg-cyan-500/30 text-cyan-300 border-cyan-500/50 font-bold' 
-                            : 'bg-black/40 text-slate-400 border-white/5 hover:border-white/20'
-                        }`}
-                      >
-                        {r}
-                      </button>
-                    ))}
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="or type custom range (e.g. 8 - 12 reps)"
-                    value={customExRepRange}
-                    onChange={(e) => setCustomExRepRange(e.target.value)}
-                    className="w-full p-2 bg-black/60 border border-white/10 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-cyan-500 mt-1"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-mono text-slate-300 block font-bold">Form Cue / Focus Note (optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Squeeze chest for 1 second at top contraction"
-                    value={customExCues}
-                    onChange={(e) => setCustomExCues(e.target.value)}
-                    className="w-full p-2 bg-black/60 border border-white/10 rounded-xl text-white text-xs font-sans placeholder-slate-600 focus:outline-none focus:border-cyan-500"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsCustomExerciseModalOpen(false)}
-                    className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-300 text-xs font-bold"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/30 flex items-center justify-center gap-1.5"
-                  >
-                    <Check className="w-4 h-4 stroke-[3]" />
-                    Save & Add to Split
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        {/* HYPER-CUSTOMIZABLE CREATE CUSTOM EXERCISE MODAL */}
+        <CreateCustomExerciseModal
+          isOpen={isCustomExerciseModalOpen}
+          onClose={() => setIsCustomExerciseModalOpen(false)}
+          onSaveExercise={async (exerciseData) => {
+            const created = await addCustomExercise(exerciseData);
+            if (created && created.id) {
+              const nextIds = [...exerciseIds, created.id];
+              setExerciseIds(nextIds);
+              updateSplitDay(activeDay, { exerciseIds: nextIds });
+              setIsCustomExerciseModalOpen(false);
+              showToast(`Created & Added '${created.name}'!`, 'success');
+            }
+          }}
+          initialMuscle={selectedMuscles[0] as MuscleGroup || 'Chest'}
+          initialEquipment="Barbell"
+        />
 
       </div>
     </div>,

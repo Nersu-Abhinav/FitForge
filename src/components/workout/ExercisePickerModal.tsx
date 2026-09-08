@@ -8,6 +8,7 @@ import {
   Flame, Zap, Shield, Target, Activity, Sparkles, Award
 } from 'lucide-react';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
+import { CreateCustomExerciseModal } from './CreateCustomExerciseModal';
 
 interface ExercisePickerProps {
   isOpen: boolean;
@@ -60,19 +61,8 @@ export const ExercisePickerModal: React.FC<ExercisePickerProps> = ({
   const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroup | 'All'>('All');
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | 'All'>('All');
   const [selectedExerciseDetail, setSelectedExerciseDetail] = useState<Exercise | null>(null);
+  // Custom exercise modal state
   const [isCreatingCustom, setIsCreatingCustom] = useState(false);
-
-  // Custom exercise form state
-  const [customName, setCustomName] = useState('');
-  const [customMuscle, setCustomMuscle] = useState<MuscleGroup>('Chest');
-  const [customEquipment, setCustomEquipment] = useState<Equipment>('Barbell');
-
-  // Advanced Barbell & Dumbbell state
-  const [selectedBarWeight, setSelectedBarWeight] = useState<number>(20);
-  const [selectedBarName, setSelectedBarName] = useState<string>('Olympic 20kg');
-  const [customBarInput, setCustomBarInput] = useState<number>(20);
-  const [selectedDbMode, setSelectedDbMode] = useState<'pair' | 'single'>('pair');
-  const [isPlateCalcOpen, setIsPlateCalcOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -90,40 +80,6 @@ export const ExercisePickerModal: React.FC<ExercisePickerProps> = ({
 
     return matchesSearch && matchesMuscle && matchesEquipment;
   });
-
-  const handleCreateCustom = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customName.trim()) return;
-
-    const barWeight = selectedBarWeight === 0 ? customBarInput : selectedBarWeight;
-    const barCues = customEquipment === 'Barbell' 
-      ? [`Base Bar: ${selectedBarWeight === 0 ? `Custom (${barWeight}kg)` : selectedBarName}`, 'Calculated as total load (Bar + plates loaded on both sides)']
-      : customEquipment === 'Dumbbell'
-      ? [`Tracking Mode: ${selectedDbMode === 'pair' ? 'Pair (Weight per hand)' : 'Single Dumbbell'}`, 'Volume calculated per individual dumbbell weight']
-      : ['Perform with controlled tempo and strict form.'];
-
-    addCustomExercise({
-      name: customName.trim(),
-      category: 'Custom',
-      muscleGroup: customMuscle,
-      secondaryMuscles: [],
-      equipment: customEquipment,
-      difficulty: 'Intermediate',
-      recommendedRepRange: '8 - 12 reps',
-      instructions: [
-        customEquipment === 'Barbell' 
-          ? `Standard bar setup: ${selectedBarWeight === 0 ? `${barWeight}kg custom bar` : selectedBarName}. Log the total combined weight of bar plus plates.`
-          : customEquipment === 'Dumbbell'
-          ? `Dumbbell configuration: ${selectedDbMode === 'pair' ? 'Two identical dumbbells' : 'Single dumbbell hold'}. Log weight per individual dumbbell.`
-          : 'Perform with controlled tempo and strict form.'
-      ],
-      formCues: barCues,
-      commonMistakes: ['Rushing reps without control', 'Improper weight selection']
-    });
-
-    setCustomName('');
-    setIsCreatingCustom(false);
-  };
 
   return createPortal(
     <div 
@@ -459,317 +415,19 @@ export const ExercisePickerModal: React.FC<ExercisePickerProps> = ({
           </div>
         )}
 
-        {/* 7. Custom Exercise Modal with Advanced Barbell vs Dumbbell Distinction */}
-        {isCreatingCustom && (
-          <div 
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setIsCreatingCustom(false);
-            }}
-            className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto"
-          >
-            <div 
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-xl bg-[#0C101D] border border-white/10 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5 my-auto max-h-[92vh] flex flex-col"
-            >
-              {/* Header */}
-              <div className="flex justify-between items-center pb-3 border-b border-white/10">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
-                    <Plus className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-black text-white">Create Custom Exercise</h3>
-                    <p className="text-xs text-slate-400">Configure equipment mechanics & muscle targets</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsCreatingCustom(false)}
-                  className="p-1.5 text-slate-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateCustom} className="space-y-4 overflow-y-auto flex-1 pr-1">
-                {/* 1. Exercise Name */}
-                <div>
-                  <label className="block text-xs font-mono uppercase text-slate-300 font-bold mb-1.5">
-                    Exercise Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={customName}
-                    onChange={(e) => setCustomName(e.target.value)}
-                    placeholder="e.g., Incline Dumbbell Bench Press, Barbell Romanian Deadlift"
-                    className="w-full px-4 py-2.5 bg-[#121A2C] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500 font-sans"
-                  />
-                </div>
-
-                {/* 2. Visual Equipment Cards (Barbell vs Dumbbell vs Other) */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-mono uppercase text-slate-300 font-bold">
-                      Equipment Type *
-                    </label>
-                    <span className="text-[11px] font-mono text-emerald-400 font-semibold">
-                      {customEquipment}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {[
-                      { 
-                        type: 'Barbell' as Equipment, 
-                        title: 'Barbell', 
-                        desc: 'Bilateral total bar + plates load',
-                        badge: 'Total Load (Bar + Plates)',
-                        color: 'border-emerald-500/60 bg-emerald-500/15 text-emerald-300'
-                      },
-                      { 
-                        type: 'Dumbbell' as Equipment, 
-                        title: 'Dumbbell', 
-                        desc: 'Unilateral independent arms',
-                        badge: 'Weight Per Hand (e.g. 2×30kg)',
-                        color: 'border-cyan-500/60 bg-cyan-500/15 text-cyan-300'
-                      },
-                      { 
-                        type: 'Cable' as Equipment, 
-                        title: 'Cable / Pulley', 
-                        desc: 'Continuous stack tension',
-                        badge: 'Stack Pin Weight',
-                        color: 'border-purple-500/60 bg-purple-500/15 text-purple-300'
-                      },
-                      { 
-                        type: 'Machine' as Equipment, 
-                        title: 'Machine / Smith', 
-                        desc: 'Guided fixed plane',
-                        badge: 'Machine Leverage',
-                        color: 'border-amber-500/60 bg-amber-500/15 text-amber-300'
-                      },
-                      { 
-                        type: 'Bodyweight' as Equipment, 
-                        title: 'Bodyweight', 
-                        desc: 'Calisthenics / added belt load',
-                        badge: 'BW + Added kg',
-                        color: 'border-blue-500/60 bg-blue-500/15 text-blue-300'
-                      },
-                      { 
-                        type: 'Kettlebell' as Equipment, 
-                        title: 'Kettlebell', 
-                        desc: 'Ballistic center of mass',
-                        badge: 'KB Weight',
-                        color: 'border-rose-500/60 bg-rose-500/15 text-rose-300'
-                      }
-                    ].map((eq) => {
-                      const isSelected = customEquipment === eq.type;
-                      return (
-                        <button
-                          key={eq.type}
-                          type="button"
-                          onClick={() => setCustomEquipment(eq.type)}
-                          className={`p-3 rounded-2xl border text-left transition-all pressable flex flex-col justify-between ${
-                            isSelected
-                              ? `${eq.color} shadow-lg glow-volt ring-1 ring-emerald-400/50`
-                              : 'bg-[#121A2C] border-white/10 text-slate-300 hover:border-white/20 hover:bg-[#18233C]'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-black text-white">{eq.title}</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[3]" />}
-                          </div>
-                          <p className="text-[10px] text-slate-400 leading-tight mb-2">{eq.desc}</p>
-                          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold uppercase ${isSelected ? 'bg-black/30' : 'bg-white/5 text-slate-400'}`}>
-                            {eq.badge}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Specific Equipment Subtype Callout (Barbell vs Dumbbell Mechanics) */}
-                {customEquipment === 'Barbell' && (
-                  <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 space-y-3 animate-fade-in">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
-                        <Dumbbell className="w-4 h-4" />
-                        <span>Barbell Specification & Bar Weight</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsPlateCalcOpen(true)}
-                        className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[11px] font-mono font-bold flex items-center gap-1 border border-emerald-500/30 transition-all pressable"
-                      >
-                        ⚖️ Visual Plate Calc
-                      </button>
-                    </div>
-
-                    <p className="text-[11px] text-slate-300 leading-relaxed">
-                      Barbell exercises are logged as <strong>Total Weight</strong> (Bar + loaded plates on both sides). Select your standard bar below:
-                    </p>
-
-                    {/* Interactive Barbell Selection Chips */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                      {[
-                        { label: 'Olympic 20kg', wt: 20 },
-                        { label: "Women's 15kg", wt: 15 },
-                        { label: 'EZ-Curl 10kg', wt: 10 },
-                        { label: 'Trap Bar 25kg', wt: 25 },
-                        { label: 'Smith Bar 15kg', wt: 15 },
-                        { label: 'Custom Bar', wt: 0 },
-                      ].map(bar => {
-                        const isSelected = selectedBarWeight === bar.wt;
-                        return (
-                          <button
-                            key={bar.label}
-                            type="button"
-                            onClick={() => {
-                              setSelectedBarWeight(bar.wt);
-                              if (bar.wt !== 0) setSelectedBarName(bar.label);
-                            }}
-                            className={`py-2 px-2 rounded-xl text-[11px] font-mono font-bold text-left transition-all border pressable flex items-center justify-between ${
-                              isSelected
-                                ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black shadow-md'
-                                : 'bg-slate-900/80 text-slate-300 border-white/10 hover:border-emerald-500/40'
-                            }`}
-                          >
-                            <span>{bar.label}</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {selectedBarWeight === 0 && (
-                      <div className="flex items-center gap-2 pt-1 animate-fade-in">
-                        <span className="text-xs font-mono text-slate-300">Custom Bar Weight:</span>
-                        <input
-                          type="number"
-                          step="0.5"
-                          min="1"
-                          max="50"
-                          value={customBarInput}
-                          onChange={(e) => setCustomBarInput(parseFloat(e.target.value) || 0)}
-                          placeholder="e.g. 8"
-                          className="w-20 px-2 py-1 bg-slate-900 border border-emerald-500/40 rounded-lg text-white font-mono font-bold text-xs text-center focus:outline-none"
-                        />
-                        <span className="text-xs font-mono text-emerald-400">kg</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {customEquipment === 'Dumbbell' && (
-                  <div className="p-4 rounded-2xl bg-cyan-950/30 border border-cyan-500/30 space-y-3 animate-fade-in">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs font-bold text-cyan-400">
-                        <Dumbbell className="w-4 h-4" />
-                        <span>Dumbbell Mechanics: Weight Per Hand</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsPlateCalcOpen(true)}
-                        className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[11px] font-mono font-bold flex items-center gap-1 border border-cyan-500/30 transition-all pressable"
-                      >
-                        🪙 Dumbbell Picker
-                      </button>
-                    </div>
-
-                    <p className="text-[11px] text-slate-300 leading-relaxed">
-                      Dumbbell exercises are tracked as <strong>Weight Per Dumbbell</strong> (e.g. 2×30kg dumbbells = enter <code className="text-cyan-300">30 kg</code>).
-                    </p>
-
-                    {/* Mode selection: Pair vs Single */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedDbMode('pair')}
-                        className={`py-2 px-3 rounded-xl text-xs font-mono font-bold transition-all border pressable flex items-center justify-between ${
-                          selectedDbMode === 'pair'
-                            ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-black shadow-md'
-                            : 'bg-slate-900/80 text-slate-300 border-white/10 hover:border-cyan-500/40'
-                        }`}
-                      >
-                        <span>👥 Pair (Per Hand)</span>
-                        {selectedDbMode === 'pair' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setSelectedDbMode('single')}
-                        className={`py-2 px-3 rounded-xl text-xs font-mono font-bold transition-all border pressable flex items-center justify-between ${
-                          selectedDbMode === 'single'
-                            ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-black shadow-md'
-                            : 'bg-slate-900/80 text-slate-300 border-white/10 hover:border-cyan-500/40'
-                        }`}
-                      >
-                        <span>👤 Single DB (Goblet)</span>
-                        {selectedDbMode === 'single' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* 3. Primary Muscle Selector Grid */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-mono uppercase text-slate-300 font-bold">
-                    Primary Muscle Group *
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                    {MUSCLE_FILTER_OPTIONS.filter(m => m.label !== 'All').map((muscle) => {
-                      const isSelected = customMuscle === muscle.label;
-                      return (
-                        <button
-                          key={muscle.label}
-                          type="button"
-                          onClick={() => setCustomMuscle(muscle.label as MuscleGroup)}
-                          className={`py-2 px-2 rounded-xl text-xs font-mono font-bold transition-all text-center border flex items-center justify-center gap-1 ${
-                            isSelected
-                              ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md font-black'
-                              : 'bg-[#121A2C] text-slate-400 border-white/10 hover:text-white hover:border-white/20'
-                          }`}
-                        >
-                          <span>{muscle.icon}</span>
-                          <span>{muscle.displayName}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="pt-3 border-t border-white/10 flex gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setIsCreatingCustom(false)}
-                    className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg glow-volt pressable transition-all flex items-center justify-center gap-1.5"
-                  >
-                    <Check className="w-4 h-4 stroke-[3]" />
-                    Save & Add Movement
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* 8. Interactive Plate Calculator & Dumbbell Weight Selector */}
-        <PlateCalculatorModal
-          isOpen={isPlateCalcOpen}
-          onClose={() => setIsPlateCalcOpen(false)}
-          equipmentType={customEquipment}
-          initialWeight={customEquipment === 'Barbell' ? (selectedBarWeight === 0 ? customBarInput : selectedBarWeight) : 20}
-          onApplyWeight={() => {
-            setIsPlateCalcOpen(false);
+        {/* 7. Hyper-Customizable Create Custom Exercise Modal */}
+        <CreateCustomExerciseModal
+          isOpen={isCreatingCustom}
+          onClose={() => setIsCreatingCustom(false)}
+          onSaveExercise={async (exerciseData) => {
+            const created = await addCustomExercise(exerciseData);
+            if (created && created.id) {
+              onSelectExercise(created.id);
+              onClose();
+            }
           }}
+          initialMuscle={selectedMuscle === 'All' ? 'Chest' : selectedMuscle}
+          initialEquipment={selectedEquipment === 'All' ? 'Barbell' : selectedEquipment}
         />
 
       </div>
