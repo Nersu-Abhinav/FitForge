@@ -133,8 +133,13 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutProps> = ({ isOpen, onClo
       <div className="w-[450px] h-[300px] bg-cyan-500/10 rounded-full blur-[100px] absolute top-1/3 -right-20 pointer-events-none" />
       <div className="w-[400px] h-[300px] bg-purple-500/10 rounded-full blur-[90px] absolute bottom-10 left-1/4 pointer-events-none" />
 
-      {/* Top Live Telemetry HUD Bar */}
-      <header className="px-4 sm:px-6 pt-3.5 pb-3.5 border-b border-white/10 bg-[#0B0F1C]/90 backdrop-blur-xl flex items-center justify-between shrink-0 relative z-20 shadow-2xl">
+      {/* Top Live Telemetry HUD Bar with Mobile Safe Area Support */}
+      <header 
+        style={{
+          paddingTop: 'max(14px, env(safe-area-inset-top, 28px))'
+        }}
+        className="px-4 sm:px-6 pb-3.5 border-b border-white/10 bg-[#0B0F1C]/90 backdrop-blur-xl flex items-center justify-between shrink-0 relative z-20 shadow-2xl"
+      >
         <div className="flex items-center gap-3.5">
           <button
             onClick={onClose}
@@ -327,44 +332,52 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutProps> = ({ isOpen, onClo
                   <span className="col-span-1 text-slate-600">Del</span>
                 </div>
 
-                {/* Set Rows */}
+                {/* Set Rows with Smart Sequential Working Set Numbering */}
                 <div className="space-y-2.5">
-                  {exercise.sets.map((set) => {
-                    return (
-                      <div
-                        key={set.id}
-                        className={`grid grid-cols-12 gap-1.5 sm:gap-2 items-center p-2 rounded-2xl transition-all group/row ${
-                          set.completed
-                            ? 'bg-emerald-950/30 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
-                            : 'bg-black/30 border border-white/5 hover:border-white/15'
-                        }`}
-                      >
-                        {/* Set Type Pill Selector */}
-                        <div className="col-span-2 flex items-center gap-1">
-                          <select
-                            value={set.type}
-                            onChange={(e) => {
-                              if (e.target.value === 'delete') {
-                                removeSet(exercise.id, set.id);
-                              } else {
-                                updateSet(exercise.id, set.id, { type: e.target.value as SetType });
-                              }
-                            }}
-                            className={`text-xs font-mono font-black px-1.5 py-1.5 rounded-xl cursor-pointer border w-full text-center ${
-                              set.type === 'warmup' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
-                              set.type === 'dropset' ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' :
-                              set.type === 'failure' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' :
-                              'bg-[#121828] text-slate-200 border-white/10'
-                            }`}
-                            title="Change set type or delete set"
-                          >
-                            <option value="normal">{set.setNumber}</option>
-                            <option value="warmup">W (Warmup)</option>
-                            <option value="dropset">D (Drop)</option>
-                            <option value="failure">F (Fail)</option>
-                            <option value="delete">🗑️ Delete</option>
-                          </select>
-                        </div>
+                  {(() => {
+                    let workingSetIndex = 0;
+                    return exercise.sets.map((set) => {
+                      let normalWorkingNumber = 0;
+                      if (set.type === 'normal') {
+                        workingSetIndex++;
+                        normalWorkingNumber = workingSetIndex;
+                      }
+
+                      return (
+                        <div
+                          key={set.id}
+                          className={`grid grid-cols-12 gap-1.5 sm:gap-2 items-center p-2 rounded-2xl transition-all group/row ${
+                            set.completed
+                              ? 'bg-emerald-950/30 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                              : 'bg-black/30 border border-white/5 hover:border-white/15'
+                          }`}
+                        >
+                          {/* Set Type Pill Selector */}
+                          <div className="col-span-2 flex items-center gap-1">
+                            <select
+                              value={set.type}
+                              onChange={(e) => {
+                                if (e.target.value === 'delete') {
+                                  removeSet(exercise.id, set.id);
+                                } else {
+                                  updateSet(exercise.id, set.id, { type: e.target.value as SetType });
+                                }
+                              }}
+                              className={`text-xs font-mono font-black px-1.5 py-1.5 rounded-xl cursor-pointer border w-full text-center transition-all ${
+                                set.type === 'warmup' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                                set.type === 'dropset' ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' :
+                                set.type === 'failure' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' :
+                                'bg-[#121828] text-slate-200 border-white/10'
+                              }`}
+                              title="Change set type or delete set"
+                            >
+                              <option value="normal">{normalWorkingNumber || (workingSetIndex + 1)}</option>
+                              <option value="warmup">W</option>
+                              <option value="dropset">D</option>
+                              <option value="failure">F</option>
+                              <option value="delete">🗑️</option>
+                            </select>
+                          </div>
 
                         {/* Ghost Previous Performance */}
                         <div className="col-span-2 text-center text-xs font-mono text-slate-400 truncate">
@@ -437,7 +450,8 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutProps> = ({ isOpen, onClo
                         </div>
                       </div>
                     );
-                  })}
+                  });
+                })()}
                 </div>
 
                 {/* Set Actions: Add Set, Drop Set, Failure */}
