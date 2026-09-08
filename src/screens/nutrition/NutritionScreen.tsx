@@ -25,7 +25,8 @@ import {
   Flame,
   Check,
   Minus,
-  RotateCcw
+  RotateCcw,
+  SlidersHorizontal
 } from 'lucide-react';
 
 const MEAL_TYPES: { key: MealType; title: string; subtitle: string }[] = [
@@ -164,31 +165,30 @@ export const NutritionScreen: React.FC = () => {
 
           {/* Water Tracker Card */}
           <div className="forge-card rounded-3xl p-6 sm:p-7 border border-cyan-500/30 bg-gradient-to-br from-cyan-950/30 via-[#0C1220] to-[#0A0E1A] shadow-2xl space-y-4 relative overflow-hidden">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <div 
                 onClick={() => {
                   triggerHaptic('light');
                   setIsHydrationModalOpen(true);
                 }}
-                className="flex items-center gap-3 cursor-pointer group"
+                className="flex items-center gap-3 cursor-pointer group min-w-0"
                 title="Tap to manage water logs"
               >
-                <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+                <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform shrink-0 glow-cyan">
                   <Droplets className="w-5 h-5" />
                 </div>
-                <div>
-                  <span className="text-xs font-mono uppercase text-cyan-400 font-bold tracking-wider flex items-center gap-1.5">
+                <div className="min-w-0">
+                  <span className="text-[11px] font-mono uppercase text-cyan-400/90 font-bold tracking-wider block">
                     Hydration Target
-                    <span className="text-[10px] text-cyan-500/70 font-sans normal-case hover:underline">Manage ⚙️</span>
                   </span>
-                  <div className="text-lg font-black text-white font-mono">
-                    {(waterConsumedMl / 1000).toFixed(1)} L <span className="text-xs font-normal text-slate-400">/ {(user.goals.dailyWaterMl / 1000).toFixed(1)} L</span>
+                  <div className="text-lg font-black text-white font-mono leading-tight truncate">
+                    {(waterConsumedMl / 1000).toFixed(1)} L <span className="text-xs font-normal text-slate-400 font-mono">/ {(user.goals.dailyWaterMl / 1000).toFixed(1)} L</span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-cyan-400 font-black px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs font-mono text-cyan-400 font-black px-2.5 py-1 rounded-xl bg-cyan-500/10 border border-cyan-500/30 shadow-sm">
                   {Math.round((waterConsumedMl / (user.goals.dailyWaterMl || 3500)) * 100)}%
                 </span>
                 <button
@@ -197,10 +197,11 @@ export const NutritionScreen: React.FC = () => {
                     triggerHaptic('light');
                     setIsHydrationModalOpen(true);
                   }}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors pressable"
-                  title="Open full hydration manager & log breakdown"
+                  className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/40 text-xs font-mono font-bold transition-all pressable flex items-center gap-1.5 shadow-sm"
+                  title="Manage water logs & breakdown"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Manage</span>
                 </button>
               </div>
             </div>
